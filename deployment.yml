@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-pims-user-portal
+  namespace: pims
+  labels:
+    app: frontend-pims-user-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend-pims-user-portal
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 33%
+  template:
+    metadata:
+      labels:
+        app: frontend-pims-user-portal
+    spec:
+      dnsPolicy: Default
+      containers:
+        - name: frontend-pims-user-portal
+          image: harbor.dev.cbishi.com/pims/frontend_pims_user_portal:latest
+          ports:
+            - containerPort: 80
+      imagePullSecrets:
+        - name: harbor-registry-secret
+---
+kind: Service
+apiVersion: v1
+metadata:
+  namespace: pims
+  name: frontend-pims-user-portal-service
+spec:
+  selector:
+    app: frontend-pims-user-portal
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 31080
+  type: LoadBalancer

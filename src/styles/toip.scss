@@ -1,0 +1,61 @@
+.topic-card{
+    color: #2b85e4;
+    font-weight: bold;
+    font-size: 18px;
+  }
+  .card-m{
+    margin-top:10px;
+  }
+  .charts{
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 350px;
+  }
+  .charts::-webkit-scrollbar {
+    /*滚动条整体样式*/
+    width : 10px;  /*高宽分别对应横竖滚动条的尺寸*/
+    height: 1px;
+    }
+  .charts::-webkit-scrollbar-thumb {
+    /*滚动条里面小方块*/
+    border-radius   : 10px;
+    background-color: skyblue;
+    background-image: -webkit-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.2) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0.2) 75%,
+        transparent 75%,
+        transparent
+    );
+  }
+  .charts::-webkit-scrollbar-track {
+    /*滚动条里面轨道*/
+    box-shadow   : inset 0 0 5px rgba(0, 0, 0, 0.2);
+    background   : #ededed;
+    border-radius: 10px;
+  }
+  .box-checkbox{
+    ::v-deep .el-checkbox.is-bordered+.el-checkbox.is-bordered{
+      margin-left: 5px;
+    }
+    .topic-checkbox{
+      margin: 5px;
+  
+      ::v-deep .el-checkbox__input{
+        float: left;
+        line-height: 25px;
+      }
+      ::v-deep .el-checkbox__label{
+        float: left;
+        display: inline-block;
+        width: 100px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        line-height: 25px;
+      }
+    }
+  }

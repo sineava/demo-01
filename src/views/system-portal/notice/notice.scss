@@ -1,0 +1,227 @@
+.notice-card {
+    margin: 0 auto;
+    width: 1200px;
+    background-color: #fff;
+
+    /deep/ .el-tabs {
+      padding: 0;
+      width: 180px;
+      margin-right: 40px;
+      padding-top: 20px;
+      .el-tabs__item {
+          height: 50px;
+          line-height: 50px;
+          text-align: center;
+          color: #999999;
+          font-size: 15px;
+
+           &.is-active {
+              color: #333;
+              font-weight: bold;
+            }
+
+        }
+    }
+
+    .msg-tab {
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      color: #243541;
+
+      div {
+        cursor: pointer;
+        height: 32px;
+        line-height: 32px;
+        color: #666666;
+        border: 1px solid #DCDCDC;
+        border-radius: 2px;
+        margin-right: 10px;
+        padding: 0 15px;
+
+        &.active {
+          color: #3E95FC;
+          border-color: #3E95FC;
+        }
+      }
+    }
+
+    .msg-tab-main {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #EDF1F5;
+      padding: 34px 0 24px 0;
+      height: 40px;
+      align-items: center;
+
+      /deep/ .el-input {
+        width: 260px;
+      }
+    }
+  }
+
+  .unread-container {
+    background-color: #ffffff;
+    padding-bottom: 30px;
+
+    .notice-list {
+      display: flex;
+      border-bottom: 1px solid #EDF1F5;
+      padding: 24px 0 20px 0;
+      cursor: pointer;
+      position: relative;
+
+      .notice-icon {
+        width: 40px;
+        height: 40px;
+        background: #68A1D5;
+        border-radius: 4px;
+        margin-right: 10px;
+        display: flex;
+        align-items:center;
+        justify-content: center;
+
+        .icon {
+          color: #fff;
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      .notice-content {
+        flex: 1;
+        .notice-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+
+          .head-left {
+            display: flex;
+            align-items: center;
+            font-size: 16px;
+            color: #666666;
+
+            img {
+              width: 48px;
+              height: 22px;
+              margin-right: 8px;
+            }
+
+          }
+
+          .head-right {
+            color: #C5C5C5;
+            font-size: 12px;
+          }
+        }
+
+        .notice-desc {
+          color: #666666;
+          font-size: 12px;
+          line-height: 20px;
+          margin-top: 14px;
+          display: -webkit-box;
+          /* -webkit-box-orient: vertical; /
+          /! autoprefixer: ignore next */
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          overflow: hidden;
+
+        }
+      }
+    }
+}
+
+td.table_td_h {
+    padding: 17px 0;
+}
+.right-menu {
+    display: none;
+    position: fixed;
+    background: #fff;
+    border: 1px solid #bababa;
+    border-radius: 3px;
+    z-index: 999;
+    box-shadow: 2px 2px 3px 0px rgba(51, 42, 40, 0.7);
+    border-radius: 1px;
+    p{
+        margin: 0;
+        display: block;
+        width: 200px;
+        height: 35px;
+        line-height: 35px;
+        text-align: left;
+        padding: 0 24px 0 32px;
+        color: #000000;
+        cursor: pointer;
+        font-size: 15px;
+        border-bottom: 1px solid #e8eaed;
+        &:hover{
+            background: #e8eaed;
+        }
+    }
+    .menu-disable{
+        cursor: no-drop;
+        color: #80868b;
+    }
+}
+.red {
+  color: #fff;
+  background-color: red;
+  border: 0;
+}
+.green {
+  color: #2ecc71;
+}
+.blue {
+  color: #409eff;
+}
+
+.list-main {
+  display: flex;
+  box-shadow: 0px 8px 13px rgba(79, 135, 181, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: calc(100vh - 208px);
+
+  .list-wrap {
+    flex: 1;
+    margin-right: 35px;
+  }
+}
+.list-title {
+  color: #3E95FC;
+  font-weight: bold;
+  font-size: 20px;
+  height: 60px;
+  background-color: #F8FBFD;
+  padding: 0 24px;
+  line-height: 60px;
+  border-radius: 4px 4px 0px 0px;
+  border: 1px solid #EDF1F5;
+  margin-top: 16px;
+
+  .el-button {
+    float: right;
+    margin-top: 14px;
+  }
+}
+
+/deep/ .el-tabs--left .el-tabs__header.is-left {
+  width: 180px;
+}
+/deep/ .tabs-span {
+  display: flex;
+  align-items: center;
+
+  .icon {
+    width: 16px;
+    height: 16px;
+    margin: 0 8px 0 10px;
+  }
+}
+
+/deep/ .pagination {
+  justify-content: flex-start;
+}

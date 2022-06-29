@@ -1,0 +1,545 @@
+<template>
+  <el-dialog
+    title="批量导入车辆类资产数据"
+    :visible.sync="dialogVisible"
+    width="80%"
+    :close-on-press-escape="false"
+    :close-on-click-modal="false"
+    :destroy-on-close="true"
+  >
+    <el-table
+      v-loading="loading"
+      :data="tableData"
+      style="width: 100%;"
+      height="500"
+      @expand-change="expandChange"
+    >
+      <el-table-column type="expand">
+        <template v-slot="props">
+          <el-card class="box-card">
+            <Basics
+              :ref="`Basics_${props.$index}`"
+              :assetsTypeData="props.row.assetsTypes || {}"
+              :infoData="props.row || {}"
+              :oper="oper"
+            />
+            <BasicsCar
+              :ref="`BasicsOther_${props.$index}`"
+              :assetsTypeData="props.row.assetsTypes || {}"
+              :infoData="props.row || {}"
+              :oper="oper"
+            />
+            <Finance :ref="`Finance_${props.$index}`" :financeData="props.row || {}" :oper="oper" />
+            <Other
+              :ref="`Other_${props.$index}`"
+              :assetsTypeData="props.row.assetsTypes || {}"
+              :infoData="props.row || {}"
+              :oper="oper"
+            />
+            <div style="text-align: center;"><el-button size="mini" type="success" @click="handeUpdate(props.$index)">更新数据</el-button></div>
+          </el-card>
+        </template>
+      </el-table-column>
+      <el-table-column label="序号" width="80">
+        <template v-slot="props">
+          {{ props.$index+1 }}
+        </template>
+      </el-table-column>
+      <el-table-column
+        label="资产名称"
+        prop="name"
+      />
+      <el-table-column
+        label="资产大类"
+        prop="type"
+      />
+      <el-table-column
+        label="国标编码"
+        prop="code"
+      />
+      <el-table-column
+        label="取得方式"
+        prop="makeWay"
+      />
+      <el-table-column
+        label="取得日期"
+        prop="makeDate"
+      />
+      <el-table-column
+        label="数量"
+        prop="number"
+      />
+      <el-table-column
+        label="当前状态"
+      >
+        <template v-slot="scope">
+          <el-tag :type="scope.row.submit ? 'success':'danger'">{{ scope.row.submit ? '数据完整':'数据不完整' }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column
+        label="操作"
+        width="100"
+      >
+        <template v-slot="scope">
+          <el-button
+            size="mini"
+            type="danger"
+            @click="handleDelete(scope.$index,scope.row)"
+          >
+            删除
+          </el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+    <span slot="footer" class="dialog-footer">
+      <el-button size="mini" @click="dialogVisible = false">取 消</el-button>
+      <el-button
+        :type="submitNum>0?'info':'success'"
+        size="mini"
+        :disabled="submitNum>0?true:false"
+        @click="submit"
+      >确 定</el-button>
+    </span>
+  </el-dialog>
+</template>
+
+<script>
+import { getAllOrgList } from '@/api/general-services/enterpriseInfo/external'
+import { queryAssetsType,excelImport } from '@/api/means/card'
+import Basics from '../components/basics'// 通用基础信息
+import Finance from '../components/finance'// 财务
+import BasicsCar from '../components/basics-car'// 房屋
+import Other from '../components/other' // 其他信息
+import moment from 'moment'
+import { mapGetters } from 'vuex'
+import {basics,finance,use,others} from './ver-submit-from-data'
+export default {
+  components: {
+    Basics,
+    Finance,
+    BasicsCar,
+    Other
+  },
+  data() {
+    return {
+      loading:false, // 加载动画
+      dialogVisible:false,
+      oper:'add',
+      tableData: [],
+      excelData: [],
+      assetsTypeList:[],
+      orgList:[],
+      submitNum:1,
+      field:[
+        // 基础信息 - 通用
+
+        // { label:'原资产编号', prop:'onlyCode' },
+        { label:'资产名称', prop:'name' },
+        { label:'资产大类', prop:'type' }, // 1-房屋/2-设备/3-文物/4-图书/5-家具/6-动植物/7-物资/101-构筑物/102-土地/201-车辆
+        { label:'国标编码', prop:'code' },
+        { label:'采购组织形式', prop:'organizationalFOP' },
+        { label:'取得方式', prop:'makeWay' },
+        { label:'取得日期', prop:'makeDate' },
+        { label:'投入使用日期', prop:'useDate' },
+        { label:'自定义编号', prop:'customNumber' },
+        { label:'数量', prop:'number'},
+        { label:'预算项目编号', prop:'budgetIN'},
+        // 财务信息 - 通用
+        { label:'价值类型', prop:'valueType' },
+        { label:'价值', prop:'cost' },
+        { label:'账面净值', prop:'bookValue' },
+        { label:'财政拨款', prop:'funding' },
+        { label:'非财政拨款', prop:'noFunding' },
+        { label:'财务入账日期', prop:'dateOfFinancialEntry' },
+        { label:'财务入账状态', prop:'accountingStatus' },
+        { label:'会计凭证号', prop:'accountingCN' },
+        { label:'折旧状态', prop:'stateDepreciation' },
+        // 其他信息 - 通用
+        { label:'管理部门名称', prop:'deptName' },
+        { label:'备用字段', prop:'standby' },
+        { label:'备注', prop:'remark' },
+        { label:'坐落位置', prop:'seatingPosition' },
+        /*
+         * { label:'照片', prop:'filePath' }, // 照片
+         * 201-车辆
+         */
+        { label:'编制情况', prop:'vwovenSituation' }, // 编制情况：1在编、2不在编、3未核定车编
+        { label:'车牌号', prop:'vlicensePN' }, // 车牌号
+        { label:'规格型号', prop:'specifications' },
+        { label:'汽车排放量', prop:'vehicleEmissions' }, // 汽车排放量:(1)1.6（含）以下、(2)1.6-1.8（含）以下、(3)2.0-2.5（含）以下、(4)2.5（含）以下、新能源、柴油车
+        { label:'车辆品牌', prop:'vehicleBrand' },
+        { label:'车辆行驶证', prop:'vehicleLicense' }, // 车辆行驶证:1有、0无
+        { label:'持证人', prop:'holder' }, // 持证人:(1)本单位、(2)非单位
+        { label:'注册登记日期', prop:'vregistrationDate' }, // 注册登记日期
+        { label:'发动机号', prop:'vengineNo' },
+        { label:'车辆识别代码', prop:'vehicleIC' },
+        { label:'经销商', prop:'dealer' },
+        { label:'合同编号', prop:'contractNo' },
+        { label:'投入使用日期', prop:'vcommissioningDate' },
+        { label:'保修截止日期', prop:'warrantyED' },
+        { label:'发票号', prop:'invoiceNo' },
+        { label:'使用状态', prop:'usingState' },
+        { label:'使用人', prop:'userThe' },
+        { label:'使用部门名称', prop:'useDeptName' },
+        { label:'车辆用途', prop:'vehicleUse' },// 车辆用途:（1）副部（省）级级以上领导用车、（2）机要通讯用车、（3）应急保障用车、（4）执法执勤用车、（5）特种专业技术用车、（6）离退休干部用车、（7）其他用车
+        { label:'执法执勤用车分类', prop:'vehicleClassification' },
+        { label:'是否喷涂执法执勤标识', prop:'vIsMark' }, // (0-否，1-是)
+        { label:'本年行驶里程（km）', prop:'vcurrentYearMileage' },
+        { label:'已使用年限（月）', prop:'serviceLife' },
+      ]
+    }
+  },
+  computed: {
+    ...mapGetters([
+      'user_info'
+    ])
+  },
+  created() {
+
+  },
+  methods: {
+    async opens(excelData){
+      this.dialogVisible = true
+      this.excelData = excelData
+      this.loading = true
+      await this.queryAssetsTypeTree()
+      await this.fetchOrgs()
+      this.assembleTable()
+      this.loading = false
+    },
+    // 点击展开
+    expandChange(row){
+
+    },
+    submit(){
+      if (this.submitNum>0){
+        return false
+      }
+      const data = []
+      this.tableData.forEach(item=>{
+        data.push({vehicleInfoDto:item.submit,typeInfoId:item.submit.typeId})
+      })
+      excelImport(data).then(res=>{
+        if (res.code==='0'){
+          this.dialogVisible = false
+        }
+      })
+    },
+    // 删除
+    handleDelete(index,item){
+      if (item.submit===false){
+        this.submitNum--
+      }
+      this.tableData.splice(index,1)
+    },
+    getFieldProp(key){
+      if (key>=this.field.length){
+        return ''
+      }
+      return this.field[key].prop
+    },
+    getSubmitForm(index){
+      const basics = this.$refs[`Basics_${index}`].submitForm('ruleForm')
+      const info = this.$refs[`BasicsOther_${index}`].submitForm('ruleForm')
+      const finance = this.$refs[`Finance_${index}`].submitForm('ruleForm')
+      const other = this.$refs[`Other_${index}`].submitForm('ruleForm')
+      if (basics===false || info===false || finance===false ||other===false){
+        return false
+      }
+      return Object.assign(basics, info,finance,other)
+    },
+    // 更新数据
+    handeUpdate(index){
+      const res = this.getSubmitForm(index)
+      if (res!==false){
+        this.tableData[index] = Object.assign(this.tableData[index], res)
+        this.tableData[index].submit = res
+        this.submitNum--
+      }
+    },
+    // 验证提交表单
+    verSubmitFrom(data){
+      const basics_data = basics(data,201)
+      const finance_data = finance(data,201)
+      const use_data = use(data,201)
+      const others_data = others(data,201)
+      if (basics_data===false || use_data===false || finance_data===false ||others_data===false){
+        return false
+      }
+      return Object.assign(basics_data, finance_data,use_data,others_data)
+    },
+    // 查询国标分类
+    async queryAssetsTypeTree(){
+      const res = await queryAssetsType()
+      this.assetsTypeList = res.data || []
+    },
+    async fetchOrgs() {
+      const res = await getAllOrgList()
+      this.orgList = res.data || []
+    },
+    assembleTable(){
+      this.submitNum = 0
+      let newTable = this.excelData.map(item=>{
+        let row = {}
+        this.field.forEach((val,key)=>{
+          const prop = val['prop']
+          if (prop){
+            switch (prop) {
+            case 'deptName':
+              row[prop] = item[key]
+              row['deptId'] = this.getValue('deptId',item[key])
+              break
+            case 'code':
+              row['assetsTypes'] = this.assetsType(item[key])
+              row['typeId'] = row['assetsTypes'] && row['assetsTypes'].id ? row['assetsTypes'].id : ''
+              row['code'] = row['assetsTypes'] && row['assetsTypes'].id ? item[key] : ''
+              break
+            case 'useDeptName':
+              row[prop] = item[key]
+              row['useDeptId'] = this.getValue('useDeptId',item[key])
+              break
+            default:
+              row[prop] = this.getValue(prop,item[key])
+              break
+            }
+          }
+        })
+        const submit = this.verSubmitFrom(row)
+        row.submit = submit
+        if (submit===false){
+          this.submitNum++
+        }
+        return row
+      })
+      this.tableData = newTable
+    },
+    format(value,format){
+      let date = moment(value).format(format || 'YYYY-MM-DD')
+      if (date!=='Invalid date'){
+        return date
+      }
+      return ''
+    },
+    getValue(prop,val){
+      let value = ''
+      switch (prop) {
+      case 'holder':
+        value = this.holder(val)
+        break
+      case 'propertyRF':
+        value = this.propertyRF(val)
+        break
+      case 'deptId': // 管理部门ID
+        value = this.deptId(val)
+        break
+      case 'useDeptId': // 使用部门ID
+        value = this.deptId(val,true)
+        break
+      case 'makeDate':
+        value = val ? this.format(val) : ''
+        break
+      case 'useDate':
+        value = val ? this.format(val) : ''
+        break
+      case 'dateOfFinancialEntry':
+        value = val ? this.format(val) : ''
+        break
+      case 'vregistrationDate':
+        value = val ? this.format(val) : ''
+        break
+      case 'vcommissioningDate':
+        value = val ? this.format(val) : ''
+        break
+      case 'warrantyED':
+        value = val ? this.format(val) : ''
+        break
+      case 'vwovenSituation':
+        value = val ? this.vwovenSituation(val) : ''
+        break
+      case 'vehicleEmissions':
+        value = val ? this.vehicleEmissions(val) : ''
+        break
+      case 'vehicleLicense':
+        value = val ? this.vehicleLicense(val) : ''
+        break
+      case 'vehicleUse':
+        value = val ? this.vehicleUse(val) : ''
+        break
+      case 'vIsMark':
+        value = val ? this.vIsMark(val) : ''
+        break
+      default:
+        value = val
+        break
+      }
+      return value
+    },
+    assetsType(value){
+      let assetsType = {
+        type:201
+      }
+      for (let i=0;i<this.assetsTypeList.length;i++){
+        if (this.assetsTypeList[i].code===value){
+          this.assetsTypeList[i].label = `${this.assetsTypeList[i].code} - ${this.assetsTypeList[i].alias ? this.assetsTypeList[i].alias : this.assetsTypeList[i].name}`
+          assetsType = this.assetsTypeList[i]
+          return false
+        }
+      }
+      return assetsType
+    },
+    deptId(value,isuse){
+      let deptId = ''
+      if (this.user_info.orgid!=='1375' ||!isuse){
+        deptId = Number(this.user_info.orgid)
+      } else {
+        for (let i=0;i<this.orgList.length;i++){
+          if (this.orgList[i].orgName===value){
+            deptId = this.orgList[i].orgId
+            return true
+          }
+        }
+      }
+      return deptId
+    },
+    // 是否喷涂执法执勤标识
+    vIsMark(val){
+      let value = ''
+      switch (val) {
+      case '是':
+        value = 1
+        break
+      case '否':
+        value = 0
+        break
+      default:
+        break
+      }
+      return value
+    },
+    // 车辆用途:（1）副部（省）级级以上领导用车、（2）机要通讯用车、（3）应急保障用车、（4）执法执勤用车、（5）特种专业技术用车、（6）离退休干部用车、（7）其他用车
+    vehicleUse(val){
+      let value = ''
+      switch (val) {
+      case '副部（省）级级以上领导用车':
+        value = 1
+        break
+      case '机要通讯用车':
+        value = 2
+        break
+      case '应急保障用车':
+        value = 3
+        break
+      case '执法执勤用车':
+        value = 4
+        break
+      case '特种专业技术用车':
+        value = 5
+        break
+      case '离退休干部用车':
+        value = 6
+        break
+      case '其他用车':
+        value = 7
+        break
+      default:
+        break
+      }
+      return value
+    },
+    // 车辆行驶证
+    vehicleLicense(val){
+      let value = ''
+      switch (val) {
+      case '有':
+        value = 1
+        break
+      case '无':
+        value = 0
+        break
+      default:
+        break
+      }
+      return value
+    },
+    // 排量
+    vehicleEmissions(val){
+      let value = ''
+      switch (val) {
+      case '1.6（含）以下':
+        value = 1
+        break
+      case '1.6-1.8（含）以下':
+        value = 2
+        break
+      case '2.0-2.5（含）以下':
+        value = 3
+        break
+      case '2.5（含）以下、新能源、柴油车':
+        value = 4
+        break
+      default:
+        break
+      }
+      return value
+    },
+    // 编制情况：1在编、2不在编、3未核定车编
+    vwovenSituation(val){
+      let value = ''
+      switch (val) {
+      case '在编':
+        value = 1
+        break
+      case '不在编':
+        value = 2
+        break
+      case '未核定车编':
+        value = 3
+        break
+      default:
+        break
+      }
+      return value
+    },
+    // 持证人
+    holder(val){
+      let value = ''
+      switch (val) {
+      case '本单位':
+        value = 1
+        break
+      case '非单位':
+        value = 2
+        break
+      default:
+        break
+      }
+      return value
+    },
+    // 产权形式
+    propertyRF(val){
+      let value = ''
+      switch (val) {
+      case '有产权':
+        value = 1
+        break
+      case '无产权':
+        value = 2
+        break
+      case '产权待界定':
+        value = 3
+        break
+      default:
+        break
+      }
+      return value
+    }
+  }
+}
+</script>
+<style lang="scss">
+
+.popper-tools {
+    overflow-y: auto;
+    height: 300px;
+}
+</style>

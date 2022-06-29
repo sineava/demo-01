@@ -1,0 +1,241 @@
+<template>
+  <el-card class="body-card">
+    <div
+      slot="header"
+      class="clearfix"
+    >
+      <span>安全条件审查信息</span>
+    </div>
+    <div class="app-container">
+      <el-form
+        ref="searchForm"
+        :model="searchForm"
+        :inline="true"
+        size="small"
+      >
+        <el-form-item
+          label="项目名称:"
+          prop="projectName"
+        >
+          <el-input
+            v-model.trim="searchForm.projectName"
+            placeholder="请输入项目名称"
+          />
+        </el-form-item>
+        <el-form-item
+          label="项目类型:"
+          prop="projectType"
+        >
+          <el-input
+            v-model.trim="searchForm.projectType"
+            placeholder="请输入项目类型"
+          />
+        </el-form-item>
+        <el-form-item
+          label="所在地市港口管理部门:"
+          prop="departmentName"
+        >
+          <el-select v-model="searchForm.departmentName" filterable placeholder="请选择所在地市港口管理部门">
+            <el-option
+              v-for="item in orgList"
+              :key="item.orgCode"
+              :label="item.orgName"
+              :value="item.orgName"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item
+          label="申请单位名称:"
+          prop="enterpriseName"
+        >
+          <el-input
+            v-model.trim="searchForm.enterpriseName"
+            placeholder="请输入申请单位名称"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button
+            type="primary"
+            size="small"
+            icon="el-icon-search"
+            @click="submitForm('searchForm')"
+          >
+            查询
+          </el-button>
+          <el-button
+            size="small"
+            icon="el-icon-refresh-left"
+            @click="resetForm('searchForm')"
+          >
+            重置
+          </el-button>
+        </el-form-item>
+      </el-form>
+      <el-table
+        v-loading="listLoading"
+        :header-cell-style="{'text-align':'center'}"
+        :cell-style="{'text-align':'center'}"
+        :data="list"
+        element-loading-text="Loading"
+        stripe
+        fit
+        highlight-current-row
+        class="table-border"
+      >
+        <div />
+        <el-table-column
+          label="编号"
+          width="65"
+        >
+          <template v-slot="scope">
+            {{ pageSize * (currentPage - 1) + scope.$index + 1 }}
+          </template>
+        </el-table-column>
+        <el-table-column label="项目名称" :show-overflow-tooltip="true">
+          <template v-slot="scope">
+            {{ scope.row.projectName }}
+          </template>
+        </el-table-column>
+        <el-table-column label="项目类型" :show-overflow-tooltip="true">
+          <template v-slot="scope">
+            {{ scope.row.projectType }}
+          </template>
+        </el-table-column>
+        <el-table-column label="所在地市港口管理部门" :show-overflow-tooltip="true">
+          <template v-slot="scope">
+            {{ scope.row.departmentName }}
+          </template>
+        </el-table-column>
+        <el-table-column label="申请单位名称" :show-overflow-tooltip="true">
+          <template v-slot="scope">
+            {{ scope.row.enterpriseName }}
+          </template>
+        </el-table-column>
+        <el-table-column label="项目联系人" :show-overflow-tooltip="true">
+          <template v-slot="scope">
+            {{ scope.row.contact }}
+          </template>
+        </el-table-column>
+        <el-table-column label="联系电话" :show-overflow-tooltip="true">
+          <template v-slot="scope">
+            {{ scope.row.phone }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="button_roles.desc"
+          label="操作"
+          align="center"
+          :width="(button_roles.desc ? 95 : 0)"
+        >
+          <template v-slot="scope">
+            <el-button
+              v-if="button_roles.desc"
+              size="mini"
+              plain
+              @click="handleDetail(scope.row, 'detail')"
+            >
+              <em class="el-icon-info" /> 详情
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        :total="total"
+        :current-page="currentPage"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        :page-size="pageSize"
+        background
+        @change="paginationChange"
+      />
+    </div>
+  </el-card>
+</template>
+
+<script>
+import { getOrgList } from '@/api/general-services/enterpriseInfo/external'
+import { getPageList } from '@/api/port-services/construction-dangerous-goods/safety-condition-review'
+import pagination from '@/components/Pagination'
+import { mapGetters } from 'vuex'
+export default {
+  components: {
+    pagination
+  },
+  data() {
+    return {
+      list: [],
+      listLoading: true,
+      currentPage: 1,
+      pageSize: 20,
+      total: 0,
+      row: '',
+      searchForm: {
+        projectName: '',
+        projectType: '',
+        departmentName: '',
+        enterpriseName: ''
+      },
+      orgList: []
+    }
+  },
+  computed: {
+    ...mapGetters([
+      'button_roles'
+    ])
+  },
+  created() {
+    this.getOrgList()
+    this.fetchData()
+  },
+  methods: {
+    // 查询机构列表
+    getOrgList() {
+      getOrgList({ type: 2 }).then(res => {
+        this.orgList = res.data ? res.data.map(x => ({ orgCode: Number(x.org_CODE), orgName: x.org_NAME })) : []
+      })
+    },
+    // 查询列表数据
+    fetchData() {
+      this.listLoading = true
+      const queryInfo = {
+        ...this.searchForm,
+        pageNum: this.currentPage,
+        pageSize: this.pageSize
+      }
+      getPageList(queryInfo).then(res => {
+        this.list = res.data ? res.data.records : []
+        this.total = res.data ? res.data.total : 0
+        this.listLoading = false
+      })
+    },
+    // 查询
+    submitForm(formName) {
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          this.currentPage = 1
+          this.fetchData()
+        } else {
+
+          return false
+        }
+      })
+    },
+    // 重置查询条件
+    resetForm(formName) {
+      this.$refs[formName].resetFields()
+      this.currentPage = 1
+      this.fetchData()
+    },
+    // 换页
+    paginationChange(val) {
+      this.currentPage = val.currentPage
+      this.pageSize = val.pageSize
+      this.fetchData()
+    },
+    // 详情
+    handleDetail(item, type) {
+      this.$router.push({ path: '/danger/conditionsDetail', query: { id: item.id }})
+    }
+  }
+}
+</script>
